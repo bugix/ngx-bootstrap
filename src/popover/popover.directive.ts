@@ -6,7 +6,7 @@ import { PopoverConfig } from './popover.config';
 import { ComponentLoader, ComponentLoaderFactory } from 'ngx-bootstrap/component-loader';
 import { PopoverContainerComponent } from './popover-container.component';
 import { PositioningService } from 'ngx-bootstrap/positioning';
-import { timer } from 'rxjs';
+import { timer, Subscription } from 'rxjs';
 import { parseTriggers, Trigger } from 'ngx-bootstrap/utils';
 
 /**
@@ -90,6 +90,7 @@ export class PopoverDirective implements OnInit, OnDestroy {
   protected _delayTimeoutId: number | any;
 
   private _popover: ComponentLoader<PopoverContainerComponent>;
+  private _delaySubscription: Subscription;
   private _isInited = false;
 
   constructor(
@@ -177,7 +178,11 @@ export class PopoverDirective implements OnInit, OnDestroy {
     };
 
     if (this.delay) {
-      const _timer = timer(this.delay).subscribe(() => {
+      if (this._delaySubscription) {
+        this._delaySubscription.unsubscribe();
+      }
+
+      this._delaySubscription = timer(this.delay).subscribe(() => {
         showPopover();
         cancelDelayedTooltipShowing();
       });
@@ -189,7 +194,7 @@ export class PopoverDirective implements OnInit, OnDestroy {
               this._elementRef.nativeElement,
               trigger.close,
               () => {
-                _timer.unsubscribe();
+                this._delaySubscription.unsubscribe();
                 cancelDelayedTooltipShowing();
               }
             );
@@ -246,5 +251,9 @@ export class PopoverDirective implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this._popover.dispose();
+    
+    if (this._delaySubscription) {
+      this._delaySubscription.unsubscribe();
+    }
   }
 }
